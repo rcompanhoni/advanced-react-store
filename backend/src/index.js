@@ -16,8 +16,17 @@ server.express.use((req, res, next) => {
   }
 
   next()
-})
+});
 
+// adds the user on the request context
+server.express.use(async (req, res, next) => {
+  if (!req.userId) next(); 
+  
+  // retrieves the user in the DB with a GraphQL query
+  const user = await db.query.user({ where: { id: req.userId }}, '{ id, permissions, email, name }');
+  req.user = user;
+  next();
+});
 
 server.start(
   {
