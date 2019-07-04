@@ -2,14 +2,14 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { randomBytes } = require("crypto");
 const { promisify } = require("util");
-const { transport, makeANiceEmail } = require('../mail');
-const { hasPermission } = require('../utils');
+const { transport, makeANiceEmail } = require("../mail");
+const { hasPermission } = require("../utils");
 
 const Mutations = {
   async createItem(parent, args, ctx, info) {
     // check if the user is logged in
     if (!ctx.request.userId) {
-      throw new Error('You must be logged in to create an item');
+      throw new Error("You must be logged in to create an item");
     }
 
     // creates a new item with a relationship with the current user
@@ -53,8 +53,10 @@ const Mutations = {
 
     // check if they own the item or have the permissions
     const ownsItem = item.user.id === ctx.request.userId;
-    const hasPermissions = ctx.request.user.permissions.some(permission => ['ADMIN', 'ITEMDELETE'].includes(permission));
-    if(!ownsItem && hasPermissions) {
+    const hasPermissions = ctx.request.user.permissions.some(permission =>
+      ["ADMIN", "ITEMDELETE"].includes(permission)
+    );
+    if (!ownsItem && hasPermissions) {
       throw new Error("You don't have permission to delete this item");
     }
 
@@ -136,14 +138,18 @@ const Mutations = {
       where: { email: args.email },
       data: { resetToken, resetTokenExpiry }
     });
-    
+
     // email the user the reset token
     const mailResponse = await transport.sendMail({
-      from: 'companhoni@gmail.com',
+      from: "companhoni@gmail.com",
       to: user.email,
-      subject: 'Your password reset token',
-      html: makeANiceEmail(`Your password reset token is here \n\n <a href="${process.env.FRONTEND_URL}/reset?resetToken=${resetToken}">Click here to reset</a>`),
-    })
+      subject: "Your password reset token",
+      html: makeANiceEmail(
+        `Your password reset token is here \n\n <a href="${
+          process.env.FRONTEND_URL
+        }/reset?resetToken=${resetToken}">Click here to reset</a>`
+      )
+    });
 
     return { message: "reset token successfully generated" };
   },
@@ -191,21 +197,69 @@ const Mutations = {
   },
   async updatePermissions(parent, args, ctx, info) {
     // check if the current user is logged in
-    if(!ctx.request.userId) {
-      throw new Error('You must be logged in');
+    if (!ctx.request.userId) {
+      throw new Error("You must be logged in");
     }
 
     // query the current user
-    const currentUser = await ctx.db.query.user({ where: { id: ctx.request.userId }}, info);
+    const currentUser = await ctx.db.query.user(
+      { where: { id: ctx.request.userId } },
+      info
+    );
 
     // check if the current user has the permissions to update permissions
-    hasPermission(currentUser, ['ADMIN', 'PERMISSIONUPDATE']);
-    
+    hasPermission(currentUser, ["ADMIN", "PERMISSIONUPDATE"]);
+
     // update the informed user's permission (which not necessarily is the current user -- see the Permissions table component at the FE)
-    return ctx.db.mutation.updateUser({
-      data: { permissions: { set: args.permissions }},
-      where: { id: args.userId }
-    }, info);
+    return ctx.db.mutation.updateUser(
+      {
+        data: { permissions: { set: args.permissions } },
+        where: { id: args.userId }
+      },
+      info
+    );
+  },
+  async addToCart(parent, args, ctx, info) {
+    // is the user signed in
+    const { userId } = ctx.request;
+    if (!userId) {
+      throw new Error("You must be signed in");
+    }
+
+    // query the users current cart
+    const [existingCartItem] = await ctx.db.query.cartItems({
+      where: {
+        user: { id: userId },
+        item: { id: args.id }
+      }
+    });
+
+    // check if that item is already in their cart and increment 1 if it is
+    if (existingCartItem) {
+      console.log("This item is already in their cart");
+      return ctx.db.mutation.updateCartItem(
+        {
+          where: { id: existingCartItem.id },
+          data: { quantity: existingCartItem.quantity + 1 }
+        },
+        info
+      );
+    }
+
+    // if not, create a new CartItem for the user
+    return ctx.db.mutation.createCartItem(
+      {
+        data: {
+          user: {
+            connect: { id: userId }
+          },
+          item: {
+            connect: { id: args.id }
+          }
+        }
+      },
+      info
+    );
   }
 };
 
