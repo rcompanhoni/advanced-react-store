@@ -23,6 +23,7 @@ const TOGGLE_CART_MUTATION = gql`
   }
 `;
 
+// aggregates the 3 components (User, Mutation and Query) in a single component, which enables the use of a single top-level component with 3 props
 const Composed = adopt({
   user: ({ render }) => <User>{render}</User>,
   toggleCart: ({ render }) => <Mutation mutation={TOGGLE_CART_MUTATION}>{render}</Mutation>,
