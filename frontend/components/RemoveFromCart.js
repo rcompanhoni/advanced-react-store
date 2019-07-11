@@ -25,25 +25,18 @@ const BigButton = styled.button`
 
 class RemoveFromCart extends React.Component {
   static propTypes = {
-    id: PropTypes.string.isRequired
-  }
-
-  // this is called immediatly (due the optimistic response) and then again
-  // as soon as we get the mutation response from the server
+    id: PropTypes.string.isRequired,
+  };
+  // This gets called as soon as we get a response back from the server after a mutation has been performed
   update = (cache, payload) => {
-    console.log('REMOVING FROM CACHE');
-
-    // read from the cache
+    // 1. first read the cache
     const data = cache.readQuery({ query: CURRENT_USER_QUERY });
-
-    // remove the item from the cart
+    // 2. remove that item from the cart
     const cartItemId = payload.data.removeFromCart.id;
     data.me.cart = data.me.cart.filter(cartItem => cartItem.id !== cartItemId);
-
-    // update the cache
+    // 3. write it back to the cache
     cache.writeQuery({ query: CURRENT_USER_QUERY, data });
-  }
-
+  };
   render() {
     return (
       <Mutation
@@ -53,19 +46,20 @@ class RemoveFromCart extends React.Component {
         optimisticResponse={{
           __typename: 'Mutation',
           removeFromCart: {
-            id: this.props.id
-          }
+            __typename: 'CartItem',
+            id: this.props.id,
+          },
         }}
       >
         {(removeFromCart, { loading, error }) => (
           <BigButton
-            title="Delete Item"
             disabled={loading}
             onClick={() => {
               removeFromCart().catch(err => alert(err.message));
             }}
-            >
-              &times;
+            title="Delete Item"
+          >
+            &times;
           </BigButton>
         )}
       </Mutation>
@@ -74,3 +68,4 @@ class RemoveFromCart extends React.Component {
 }
 
 export default RemoveFromCart;
+export { REMOVE_FROM_CART_MUTATION };
