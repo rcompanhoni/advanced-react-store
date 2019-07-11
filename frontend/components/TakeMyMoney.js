@@ -1,13 +1,13 @@
-import React from "react";
-import StripeCheckout from "react-stripe-checkout";
-import { Mutation } from "react-apollo";
-import Router from "next/router";
-import NProgress from "nprogress";
-import PropTypes from "prop-types";
-import gql from "graphql-tag";
-import calcTotalPrice from "../lib/calcTotalPrice";
-import Error from "./ErrorMessage";
-import User, { CURRENT_USER_QUERY } from "./User";
+import React from 'react';
+import StripeCheckout from 'react-stripe-checkout';
+import { Mutation } from 'react-apollo';
+import Router from 'next/router';
+import NProgress from 'nprogress';
+import PropTypes from 'prop-types';
+import gql from 'graphql-tag';
+import calcTotalPrice from '../lib/calcTotalPrice';
+import Error from './ErrorMessage';
+import User, { CURRENT_USER_QUERY } from './User';
 
 const CREATE_ORDER_MUTATION = gql`
   mutation createOrder($token: String!) {
@@ -30,22 +30,19 @@ function totalItems(cart) {
 class TakeMyMoney extends React.Component {
   onToken = async (res, createOrder) => {
     NProgress.start();
-    
     // manually call the mutation once we have the stripe token
     const order = await createOrder({
       variables: {
-        token: res.id
-      }
+        token: res.id,
+      },
     }).catch(err => {
       alert(err.message);
     });
-
     Router.push({
       pathname: '/order',
-      query: { id: order.data.createOrder.id }
+      query: { id: order.data.createOrder.id },
     });
   };
-
   render() {
     return (
       <User>
@@ -61,7 +58,8 @@ class TakeMyMoney extends React.Component {
                   amount={calcTotalPrice(me.cart)}
                   name="Sick Fits"
                   description={`Order of ${totalItems(me.cart)} items!`}
-                  stripeKey="pk_test_zMRfZ6xlHyQ0f9tEWhM55Cxr00g3xL3Qq5"
+                  image={me.cart.length && me.cart[0].item && me.cart[0].item.image}
+                  stripeKey="pk_test_Vtknn6vSdcZWSG2JWvEiWSqC"
                   currency="USD"
                   email={me.email}
                   token={res => this.onToken(res, createOrder)}
